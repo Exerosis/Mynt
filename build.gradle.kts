@@ -10,11 +10,8 @@ repositories { mavenCentral() }
 
 kotlin {
     sourceSets {
-        jvm { mavenPublication {
-            group = "com.gitlab.mynt"
-            artifactId = "Mynt"
-        } }
         js { nodejs {} }
+        jvm { }
 
         val commonMain by getting {
             dependencies { implementation(kotlin("stdlib-common")) }

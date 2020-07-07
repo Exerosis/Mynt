@@ -5,9 +5,9 @@
       <configuration version="3" platform="JVM 1.6" allPlatforms="JVM [1.6]" useProjectSettings="false" isTestModule="true" externalProjectId="Mynt">
         <dependsOnModuleNames>Mynt:commonTest</dependsOnModuleNames>
         <sourceSets>
+          <sourceSet>com.gitlab.mynt.Mynt.jvmMain</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.commonTest</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.commonMain</sourceSet>
-          <sourceSet>com.gitlab.mynt.Mynt.jvmMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
         <externalSystemTestTasks>jvmTest|Mynt:jvmTest|jvm</externalSystemTestTasks>
