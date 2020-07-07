@@ -1,3 +1,4 @@
+@file:Suppress("NOTHING_TO_INLINE")
 package com.gitlab.mynt
 
 import com.gitlab.mynt.base.Connection
@@ -18,10 +19,8 @@ suspend fun Read.bytes(
 typealias ReadBlock = suspend Read.() -> Unit
 typealias WriteBlock = suspend Write.() -> Unit
 
-inline fun Connection.read(
-        block: Read.() -> Unit
-) = block(read)
+inline fun Connection.read(block: Read.() -> Unit) = block(read)
+inline fun Connection.write(block: Write.() -> Unit) = block(write)
 
-inline fun Connection.write(
-        block: Write.() -> Unit
-) = block(write)
+inline operator fun Connection.component1() = read
+inline operator fun Connection.component2() = write

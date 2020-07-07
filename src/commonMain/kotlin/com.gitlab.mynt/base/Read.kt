@@ -5,9 +5,9 @@ expect interface Read {
     suspend fun skip(amount: Int)
 
     suspend fun bytes(
-            bytes: ByteArray,
-            amount: Int,
-            offset: Int
+        bytes: ByteArray,
+        amount: Int = bytes.size,
+        offset: Int = 0
     ): ByteArray
 
     suspend fun byte(): Byte
