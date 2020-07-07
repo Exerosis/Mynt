@@ -1,0 +1,8 @@
+.idea/**/kotlinc.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf
+.idea/**/workspace.xml
+.idea/**/gradle.xml
+.gradle
+/build

@@ -1,0 +1,10 @@
+{
+  "main": "kotlin-test.js",
+  "devDependencies": {},
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": [],
+  "name": "kotlin-test",
+  "version": "1.3.72"
+}
