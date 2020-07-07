@@ -4,5 +4,5 @@
 .idea/**/shelf
 .idea/**/workspace.xml
 .idea/**/gradle.xml
-.gradle
-/build
+/build/
+/.gradle/
