@@ -1,4 +1,7 @@
-plugins {  kotlin("multiplatform") version("1.3.72") }
+plugins {
+    kotlin("multiplatform") version("1.3.72")
+    `maven-publish`
+}
 
 group = "com.gitlab.mynt"
 version = "1.0.0"
@@ -7,7 +10,10 @@ repositories { mavenCentral() }
 
 kotlin {
     sourceSets {
-        jvm {}
+        jvm { mavenPublication {
+            group = "com.gitlab.mynt"
+            artifactId = "Mynt"
+        } }
         js { nodejs {} }
 
         val commonMain by getting {

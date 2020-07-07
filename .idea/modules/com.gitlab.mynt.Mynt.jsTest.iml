@@ -5,8 +5,8 @@
       <configuration version="3" platform="JavaScript " allPlatforms="JS []" useProjectSettings="false" isTestModule="true" externalProjectId="Mynt">
         <dependsOnModuleNames>Mynt:commonTest</dependsOnModuleNames>
         <sourceSets>
-          <sourceSet>com.gitlab.mynt.Mynt.commonMain</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.commonTest</sourceSet>
+          <sourceSet>com.gitlab.mynt.Mynt.commonMain</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.jsMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
