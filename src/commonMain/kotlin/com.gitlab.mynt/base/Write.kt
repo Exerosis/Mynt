@@ -3,8 +3,8 @@ package com.gitlab.mynt.base
 expect interface Write {
     suspend fun bytes(
         bytes: ByteArray,
-        amount: Int = bytes.size,
-        offset: Int = 0
+        amount: Int,
+        offset: Int
     )
 
     suspend fun byte(byte: Byte)

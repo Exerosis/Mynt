@@ -7,20 +7,15 @@ import com.gitlab.mynt.base.Write
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 
-suspend inline fun <Type> continued(
-        crossinline block: (Continuation<Type>) -> Any?
-) = suspendCoroutineUninterceptedOrReturn(block)
+suspend inline fun <Type> continued(crossinline block: (Continuation<Type>) -> Any?)
+    = suspendCoroutineUninterceptedOrReturn(block)
 
-suspend fun Read.bytes(
-        amount: Int,
-        offset: Int = 0
-) = bytes(ByteArray(amount), amount, offset)
-
-typealias ReadBlock = suspend Read.() -> Unit
-typealias WriteBlock = suspend Write.() -> Unit
-
-inline fun Connection.read(block: Read.() -> Unit) = block(read)
-inline fun Connection.write(block: Write.() -> Unit) = block(write)
+suspend inline fun Read.bytes(amount: Int, offset: Int = 0)
+    = bytes(ByteArray(amount), amount, offset)
+suspend inline fun Read.bytes(bytes: ByteArray, offset: Int = 0)
+    = bytes(bytes, bytes.size, offset)
+suspend inline fun Write.bytes(bytes: ByteArray, offset: Int = 0)
+    = bytes(bytes, bytes.size, offset)
 
 inline operator fun Connection.component1() = read
 inline operator fun Connection.component2() = write

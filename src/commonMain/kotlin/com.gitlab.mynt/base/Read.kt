@@ -1,13 +1,15 @@
 package com.gitlab.mynt.base
 
+import kotlin.jvm.JvmOverloads
+
 //TODO Add number overloads?
 expect interface Read {
     suspend fun skip(amount: Int)
 
     suspend fun bytes(
         bytes: ByteArray,
-        amount: Int = bytes.size,
-        offset: Int = 0
+        amount: Int,
+        offset: Int
     ): ByteArray
 
     suspend fun byte(): Byte
