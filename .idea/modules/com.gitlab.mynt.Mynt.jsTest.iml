@@ -11,6 +11,9 @@
           <sourceSet>com.gitlab.mynt.Mynt.commonMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
+        <externalSystemTestTasks>
+          <externalSystemTestTask>jsNodeTest|Mynt:jsTest|js</externalSystemTestTask>
+        </externalSystemTestTasks>
         <testOutputPath>$MODULE_DIR$/../../build/js/packages/Mynt-test/kotlin/Mynt-test.js</testOutputPath>
         <compilerSettings />
         <compilerArguments>
@@ -45,4 +48,54 @@
       </configuration>
     </facet>
   </component>
+  <component name="NewModuleRootManager">
+    <output-test url="file://$MODULE_DIR$/../../build/js/packages/Mynt-test/kotlin" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../src/jsTest" />
+    <orderEntry type="jdk" jdkName="Kotlin SDK" jdkType="KotlinSDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="com.gitlab.mynt.Mynt.commonMain" scope="TEST" />
+    <orderEntry type="module" module-name="com.gitlab.mynt.Mynt.commonTest" scope="TEST" production-on-test="" />
+    <orderEntry type="module" module-name="com.gitlab.mynt.Mynt.jsMain" scope="TEST" />
+    <orderEntry type="module" module-name="com.gitlab.mynt.Mynt.jsMain" scope="RUNTIME" />
+    <orderEntry type="module-library" scope="TEST">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../build/js/node_modules/turbo-net/index.js" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" scope="TEST">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../build/js/node_modules/napi-macros/index.js" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" scope="TEST">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../build/js/node_modules/node-gyp-build/index.js" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" scope="TEST">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../../build/js/node_modules/unordered-set/index.js" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-js:1.4.0" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0" level="project" />
+  </component>
+  <component name="TestModuleProperties" production-module="com.gitlab.mynt.Mynt.jsMain" />
 </module>

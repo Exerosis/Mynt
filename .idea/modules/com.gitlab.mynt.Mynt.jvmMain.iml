@@ -42,4 +42,17 @@
       </configuration>
     </facet>
   </component>
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/../../build/classes/kotlin/jvm/main" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../src/jvmMain">
+      <sourceFolder url="file://$MODULE_DIR$/../../src/jvmMain/kotlin" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="com.gitlab.mynt.Mynt.commonMain" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:13.0" level="project" />
+  </component>
 </module>
