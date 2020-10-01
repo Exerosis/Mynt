@@ -1,5 +1,5 @@
 plugins {
-    kotlin("multiplatform") version("1.3.72")
+    kotlin("multiplatform") version("1.4.0")
     `maven-publish`
 }
 
@@ -11,13 +11,11 @@ repositories { mavenCentral() }
 kotlin {
     sourceSets {
         js { nodejs {} }
-        jvm { }
+        jvm { publishing {  } }
 
         val commonMain by getting {
-            dependencies { implementation(kotlin("stdlib-common")) }
         }
         val jvmMain by getting {
-            dependencies { implementation(kotlin("stdlib-jdk8")) }
         }
         val jsMain by getting {
             dependencies {

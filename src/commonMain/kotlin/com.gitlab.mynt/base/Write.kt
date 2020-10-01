@@ -1,6 +1,8 @@
 package com.gitlab.mynt.base
 
 expect interface Write {
+    suspend fun skip(amount: Int)
+
     suspend fun bytes(
         bytes: ByteArray,
         amount: Int,
