@@ -8,67 +8,74 @@ import java.nio.channels.ReadPendingException
 import java.nio.channels.WritePendingException
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.math.abs
 
 typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
 
-abstract class Handler<Type> : CompletionHandler<Int, ByteBuffer> {
+abstract class Handler<Type>(val error: (Throwable) -> (Unit)) : CompletionHandler<Int, ByteBuffer> {
     var continuation: Continuation<Type>? = null
     var required = 0
 
-    inline fun canContinue(continuation: Continuation<Type>): Boolean {
-        if (this.continuation != null) return false
-        this.continuation = continuation; return true
+    inline fun canContinue() = this.continuation == null
+    inline fun suspend(continuation: Continuation<Type>): Any {
+        this.continuation = continuation
+        return COROUTINE_SUSPENDED
     }
 
     inline fun complete(value: Type) {
-        continuation!!.resumeWith(Result.success(value))
+        val current = continuation!!
         continuation = null
+        current.resumeWith(Result.success(value))
     }
 
     inline fun fail(reason: Throwable) {
-        continuation!!.resumeWith(Result.failure(reason))
+        val current = continuation!!
         continuation = null
+        current.resumeWith(Result.failure(reason))
     }
 
     override fun failed(reason: Throwable, buffer: ByteBuffer) = fail(reason)
 }
 
-class SkipReadHandler(val read: Handled) : Handler<Unit>() {
+class SkipReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<Unit>(error) {
     inline operator fun invoke(
         using: ByteBuffer,
         amount: Int,
         continuation: Continuation<Unit>
     ): Any {
-        if (!canContinue(continuation)) throw ReadPendingException()
+        if (!canContinue()) throw ReadPendingException()
         val remaining = using.remaining()
         required = amount - remaining
-        if (required < 1) return Unit
+        if (required < 1) {
+            using.position(using.position() + amount)
+            return Unit
+        }
         read(using, this)
-        return COROUTINE_SUSPENDED
+        return suspend(continuation)
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
         if (count < 0) fail(ClosedChannelException())
         required -= count
         if (required < 1) {
-            buffer.position(buffer.position() + kotlin.math.abs(required))
+            buffer.position(buffer.position() + abs(required))
             complete(Unit)
         }
         else read(buffer.clear() as ByteBuffer, this)
     }
 }
-class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
+class ArrayReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<ByteArray>(error) {
     var offset = 0
     var array: ByteArray? = null
 
     operator fun invoke(
             using: ByteBuffer,
             array: ByteArray,
-            offset: Int,
             amount: Int,
+            offset: Int,
             continuation: Continuation<ByteArray>
     ): Any {
-        if (canContinue(continuation)) throw ReadPendingException()
+        if (!canContinue()) throw ReadPendingException()
         val remaining = using.remaining()
         if (remaining > 0) {
             if (remaining >= amount) {
@@ -82,7 +89,7 @@ class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
         this.array = array
         using.clear()
         read(using, this)
-        return COROUTINE_SUSPENDED
+        return suspend(continuation)
     }
 
     //OLD handle current somehow
@@ -103,21 +110,20 @@ class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
         }
     }
 }
-class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
+class BufferReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<ByteBuffer>(error) {
     operator fun invoke(
             using: ByteBuffer,
             buffer: ByteBuffer,
-            amount: Int,
             continuation: Continuation<ByteBuffer>
     ): Any {
         //OLD we could use required instead, but maybe nulling out is good?
-        if (canContinue(continuation)) throw ReadPendingException()
+        if (!canContinue()) throw ReadPendingException()
         if (using.hasRemaining()) buffer.put(using)
         //OLD this won't hard limit anything...
-        required = amount
+        required = buffer.remaining()
         return if (required >= 1) {
             read(buffer, this)
-            COROUTINE_SUSPENDED
+            suspend(continuation)
         } else buffer
     }
 
@@ -130,8 +136,9 @@ class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
 }
 class NumberReadHandler<Type : Number>(
         val read: Handled,
+        error: (Throwable) -> (Unit),
         val converter: (ByteBuffer) -> (Type)
-) : Handler<Type>() {
+) : Handler<Type>(error) {
     var mark = 0
 
     operator fun invoke(
@@ -139,7 +146,7 @@ class NumberReadHandler<Type : Number>(
             amount: Int,
             continuation: Continuation<Type>
     ): Any {
-        if (canContinue(continuation)) throw ReadPendingException()
+        if (!canContinue()) throw ReadPendingException()
         val remaining = using.remaining()
         return if (remaining < amount) {
             required = amount - remaining
@@ -155,7 +162,7 @@ class NumberReadHandler<Type : Number>(
                     }
                 }.limit(capacity)
             }, this)
-            COROUTINE_SUSPENDED
+            suspend(continuation)
         } else converter(using)
     }
 
@@ -170,21 +177,20 @@ class NumberReadHandler<Type : Number>(
     }
 }
 
-open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
+open class BufferWriteHandler(val write: Handled, error: (Throwable) -> (Unit)) : Handler<Unit>(error) {
     operator fun invoke(
         using: ByteBuffer,
         buffer: ByteBuffer,
-        amount: Int,
         continuation: Continuation<Unit>
     ): Any {
-        if (canContinue(continuation)) throw WritePendingException()
+        if (!canContinue()) throw WritePendingException()
         required = buffer.flip().remaining()
         return if (required < 1) {
             buffer.clear()
             Unit
         } else {
             write(buffer, this)
-            COROUTINE_SUSPENDED
+            suspend(continuation)
         }
     }
 
@@ -198,14 +204,15 @@ open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
 }
 class NumberWriteHandler<Type : Number>(
         write: Handled,
+        error: (Throwable) -> (Unit),
         val converter: ByteBuffer.(Type) -> (ByteBuffer)
-) : BufferWriteHandler(write) {
+) : BufferWriteHandler(write, error) {
     operator fun invoke(
         using: ByteBuffer,
         value: Type,
         continuation: Continuation<Unit>
     ): Any {
         using.clear()
-        return invoke(using, converter(using, value), 0, continuation)
+        return invoke(using, converter(using, value), continuation)
     }
 }

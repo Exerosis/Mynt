@@ -6,8 +6,8 @@
       <configuration version="3" platform="JVM 1.6" allPlatforms="JVM [1.6]" useProjectSettings="false" isTestModule="true" externalProjectId="Mynt">
         <dependsOnModuleNames>Mynt:commonTest</dependsOnModuleNames>
         <sourceSets>
-          <sourceSet>com.gitlab.mynt.Mynt.commonTest</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.jvmMain</sourceSet>
+          <sourceSet>com.gitlab.mynt.Mynt.commonTest</sourceSet>
           <sourceSet>com.gitlab.mynt.Mynt.commonMain</sourceSet>
         </sourceSets>
         <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
@@ -23,6 +23,7 @@
           <option name="noStdlib" value="true" />
           <option name="noReflect" value="true" />
           <option name="moduleName" value="Mynt" />
+          <option name="jvmTarget" value="1.6" />
           <option name="friendPaths">
             <array>
               <option value="$MODULE_DIR$/../../build/classes/kotlin/jvm/main" />
