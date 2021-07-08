@@ -23,15 +23,17 @@ abstract class Handler<Type>(val error: (Throwable) -> (Unit)) : CompletionHandl
     }
 
     inline fun complete(value: Type) {
-        val current = continuation!!
+        val current = continuation
         continuation = null
-        current.resumeWith(Result.success(value))
+        current?.resumeWith(Result.success(value))
+        if (current == null) println("Completed with null continuation")
     }
 
     inline fun fail(reason: Throwable) {
-        val current = continuation!!
+        val current = continuation
         continuation = null
-        current.resumeWith(Result.failure(reason))
+        current?.resumeWith(Result.failure(reason))
+        if (current == null) println("Failed with null continuation")
     }
 
     override fun failed(reason: Throwable, buffer: ByteBuffer) = fail(reason)
