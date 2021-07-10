@@ -6,6 +6,7 @@ import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.channels.ReadPendingException
 import java.nio.channels.WritePendingException
+import java.util.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.abs
@@ -17,23 +18,26 @@ abstract class Handler<Type>(val error: (Throwable) -> (Unit)) : CompletionHandl
     var required = 0
 
     inline fun canContinue() = this.continuation == null
-    inline fun suspend(continuation: Continuation<Type>): Any {
+    inline fun suspend(continuation: Continuation<Type>, block: () -> (Unit)): Any {
+        if (!canContinue()) println("OMG SO BAD")
         this.continuation = continuation
-        return COROUTINE_SUSPENDED
+        block(); return COROUTINE_SUSPENDED
     }
 
     inline fun complete(value: Type) {
+        if (continuation == null)
+            println("Completing with null continuation!")
         val current = continuation
         continuation = null
         current?.resumeWith(Result.success(value))
-        if (current == null) println("Completed with null continuation")
     }
 
     inline fun fail(reason: Throwable) {
+        if (continuation == null)
+            println("Failing with null continuation!")
         val current = continuation
         continuation = null
         current?.resumeWith(Result.failure(reason))
-        if (current == null) println("Failed with null continuation")
     }
 
     override fun failed(reason: Throwable, buffer: ByteBuffer) = fail(reason)
@@ -48,12 +52,9 @@ class SkipReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler
         if (!canContinue()) throw ReadPendingException()
         val remaining = using.remaining()
         required = amount - remaining
-        if (required < 1) {
+        return if (required < 1) Unit.apply {
             using.position(using.position() + amount)
-            return Unit
-        }
-        read(using, this)
-        return suspend(continuation)
+        } else suspend(continuation) { read(using, this) }
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
@@ -90,8 +91,7 @@ class ArrayReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handle
         this.offset = offset + remaining
         this.array = array
         using.clear()
-        read(using, this)
-        return suspend(continuation)
+        return suspend(continuation) { read(using, this) }
     }
 
     //OLD handle current somehow
@@ -123,10 +123,8 @@ class BufferReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handl
         if (using.hasRemaining()) buffer.put(using)
         //OLD this won't hard limit anything...
         required = buffer.remaining()
-        return if (required >= 1) {
-            read(buffer, this)
-            suspend(continuation)
-        } else buffer
+        return if (required < 1) buffer
+        else suspend(continuation) { read(buffer, this) }
     }
 
     override fun completed(count: Int, destination: ByteBuffer) {
@@ -152,7 +150,7 @@ class NumberReadHandler<Type : Number>(
         val remaining = using.remaining()
         return if (remaining < amount) {
             required = amount - remaining
-            read(using.apply {
+            suspend(continuation) { read(using.apply {
                 val capacity = capacity()
                 val limit = limit()
                 when {
@@ -163,8 +161,7 @@ class NumberReadHandler<Type : Number>(
                         position(limit)
                     }
                 }.limit(capacity)
-            }, this)
-            suspend(continuation)
+            }, this) }
         } else converter(using)
     }
 
@@ -187,13 +184,8 @@ open class BufferWriteHandler(val write: Handled, error: (Throwable) -> (Unit)) 
     ): Any {
         if (!canContinue()) throw WritePendingException()
         required = buffer.flip().remaining()
-        return if (required < 1) {
-            buffer.clear()
-            Unit
-        } else {
-            write(buffer, this)
-            suspend(continuation)
-        }
+        return if (required < 1) Unit.apply { buffer.clear() }
+        else suspend(continuation) { write(buffer, this) }
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
