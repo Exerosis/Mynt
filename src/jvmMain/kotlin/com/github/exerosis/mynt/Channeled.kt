@@ -19,7 +19,7 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resumeWithException
 
-open class ChannelHandler(size: Int, error: (Throwable) -> (Unit)) : Connection {
+open class ChannelHandler(size: Int) : Connection {
     val input = ByteBuffer.allocateDirect(size)!!.flip() as ByteBuffer
     val output = ByteBuffer.allocateDirect(size)!!.flip() as ByteBuffer
     open lateinit var channel: AsynchronousSocketChannel
@@ -94,8 +94,8 @@ open class ChannelHandler(size: Int, error: (Throwable) -> (Unit)) : Connection 
 }
 
 class AcceptChannelHandler(
-    size: Int, error: (Throwable) -> (Unit)
-) : ChannelHandler(size, error), CompletionHandler<AsynchronousSocketChannel, Continuation<Connection>> {
+    size: Int
+) : ChannelHandler(size), CompletionHandler<AsynchronousSocketChannel, Continuation<Connection>> {
     override fun completed(channel: AsynchronousSocketChannel, continuation: Continuation<Connection>) {
         this.channel = channel
         continuation.resumeWith(Result.success(this))
@@ -104,8 +104,8 @@ class AcceptChannelHandler(
             continuation.resumeWith(Result.failure(reason))
 }
 class ConnectChannelHandler(
-    size: Int, error: (Throwable) -> (Unit), override var channel: AsynchronousSocketChannel
-) : ChannelHandler(size, error), CompletionHandler<Void?, Continuation<Connection>> {
+    size: Int, override var channel: AsynchronousSocketChannel
+) : ChannelHandler(size), CompletionHandler<Void?, Continuation<Connection>> {
     override fun completed(ignored: Void?, continuation: Continuation<Connection>) =
         continuation.resumeWith(Result.success(this))
     override fun failed(reason: Throwable, continuation: Continuation<Connection>) =
@@ -118,9 +118,7 @@ fun SocketProvider(size: Int, group: AsynchronousChannelGroup) = object : Provid
     private val serverFactory = { address: SocketAddress -> open(group).bind(address) }
 
     override suspend fun accept(address: SocketAddress) = continued<Connection> {
-        servers.computeIfAbsent(address, serverFactory).accept(it, AcceptChannelHandler(size) { reason ->
-            it.resumeWithException(reason)
-        })
+        servers.computeIfAbsent(address, serverFactory).accept(it, AcceptChannelHandler(size))
         COROUTINE_SUSPENDED
     }
     override suspend fun connect(address: SocketAddress) = continued<Connection> {
@@ -128,7 +126,7 @@ fun SocketProvider(size: Int, group: AsynchronousChannelGroup) = object : Provid
         val connection = clients[address]
         if (connection == null) {
             val channel = AsynchronousSocketChannel.open(group)
-            val handler = ConnectChannelHandler(size, { reason -> it.resumeWithException(reason) }, channel)
+            val handler = ConnectChannelHandler(size, channel)
             channel.connect(address, it, handler)
             clients[address] = handler; COROUTINE_SUSPENDED
         } else connection

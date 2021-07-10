@@ -53,7 +53,7 @@ class SkipReadHandler(val read: Handled) : Handler<Unit>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return close()
+        if (count < 0) return fail(ClosedChannelException())
         required -= count
         if (required < 1) {
             buffer.position(buffer.position() + abs(required))
