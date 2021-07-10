@@ -1,6 +1,7 @@
 @file:Suppress("NOTHING_TO_INLINE")
-package com.gitlab.mynt
+package com.github.exerosis.mynt
 
+import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
@@ -12,8 +13,7 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.abs
 
 typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
-
-abstract class Handler<Type>(val error: (Throwable) -> (Unit)) : CompletionHandler<Int, ByteBuffer> {
+abstract class Handler<Type> : CompletionHandler<Int, ByteBuffer> {
     var continuation: Continuation<Type>? = null
     var required = 0
 
@@ -23,27 +23,22 @@ abstract class Handler<Type>(val error: (Throwable) -> (Unit)) : CompletionHandl
         this.continuation = continuation
         block(); return COROUTINE_SUSPENDED
     }
-
     inline fun complete(value: Type) {
-        if (continuation == null)
-            println("Completing with null continuation!")
-        val current = continuation
+        val current = continuation!!
         continuation = null
-        current?.resumeWith(Result.success(value))
+        current.resumeWith(Result.success(value))
     }
 
     inline fun fail(reason: Throwable) {
-        if (continuation == null)
-            println("Failing with null continuation!")
-        val current = continuation
+        val current = continuation!!
         continuation = null
-        current?.resumeWith(Result.failure(reason))
+        current.resumeWith(Result.failure(reason))
     }
 
     override fun failed(reason: Throwable, buffer: ByteBuffer) = fail(reason)
 }
 
-class SkipReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<Unit>(error) {
+class SkipReadHandler(val read: Handled) : Handler<Unit>() {
     inline operator fun invoke(
         using: ByteBuffer,
         amount: Int,
@@ -58,7 +53,7 @@ class SkipReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+        if (count < 0) return close()
         required -= count
         if (required < 1) {
             buffer.position(buffer.position() + abs(required))
@@ -67,7 +62,7 @@ class SkipReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler
         else read(buffer.clear() as ByteBuffer, this)
     }
 }
-class ArrayReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<ByteArray>(error) {
+class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
     var offset = 0
     var array: ByteArray? = null
 
@@ -112,7 +107,7 @@ class ArrayReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handle
         }
     }
 }
-class BufferReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handler<ByteBuffer>(error) {
+class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
     operator fun invoke(
             using: ByteBuffer,
             buffer: ByteBuffer,
@@ -135,10 +130,8 @@ class BufferReadHandler(val read: Handled, error: (Throwable) -> (Unit)) : Handl
     }
 }
 class NumberReadHandler<Type : Number>(
-        val read: Handled,
-        error: (Throwable) -> (Unit),
-        val converter: (ByteBuffer) -> (Type)
-) : Handler<Type>(error) {
+    val read: Handled, val converter: (ByteBuffer) -> (Type)
+) : Handler<Type>() {
     var mark = 0
 
     operator fun invoke(
@@ -176,7 +169,7 @@ class NumberReadHandler<Type : Number>(
     }
 }
 
-open class BufferWriteHandler(val write: Handled, error: (Throwable) -> (Unit)) : Handler<Unit>(error) {
+open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
     operator fun invoke(
         using: ByteBuffer,
         buffer: ByteBuffer,
@@ -198,10 +191,8 @@ open class BufferWriteHandler(val write: Handled, error: (Throwable) -> (Unit)) 
     }
 }
 class NumberWriteHandler<Type : Number>(
-        write: Handled,
-        error: (Throwable) -> (Unit),
-        val converter: ByteBuffer.(Type) -> (ByteBuffer)
-) : BufferWriteHandler(write, error) {
+    write: Handled, val converter: ByteBuffer.(Type) -> (ByteBuffer)
+) : BufferWriteHandler(write) {
     operator fun invoke(
         using: ByteBuffer,
         value: Type,

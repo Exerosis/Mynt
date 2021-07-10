@@ -1,4 +1,4 @@
-package com.gitlab.mynt.base
+package com.github.exerosis.mynt.base
 
 interface Provider<Address> {
     suspend fun accept(address: Address): Connection

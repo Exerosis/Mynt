@@ -1,4 +1,4 @@
-package com.gitlab.mynt.base
+package com.github.exerosis.mynt.base
 
 import java.nio.ByteBuffer
 import kotlin.coroutines.Continuation

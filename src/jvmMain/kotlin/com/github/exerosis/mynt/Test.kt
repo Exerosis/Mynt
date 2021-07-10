@@ -1,6 +1,6 @@
-package com.gitlab.mynt
+package com.github.exerosis.mynt
 
-import com.gitlab.mynt.base.Read
+import com.github.exerosis.mynt.base.Read
 import kotlinx.coroutines.runBlocking
 import java.net.InetSocketAddress
 import java.nio.channels.AsynchronousChannelGroup.withThreadPool

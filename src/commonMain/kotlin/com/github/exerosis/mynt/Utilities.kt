@@ -1,9 +1,9 @@
 @file:Suppress("NOTHING_TO_INLINE")
-package com.gitlab.mynt
+package com.github.exerosis.mynt
 
-import com.gitlab.mynt.base.Connection
-import com.gitlab.mynt.base.Read
-import com.gitlab.mynt.base.Write
+import com.github.exerosis.mynt.base.Connection
+import com.github.exerosis.mynt.base.Read
+import com.github.exerosis.mynt.base.Write
 import kotlin.coroutines.*
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.coroutines.intrinsics.startCoroutineUninterceptedOrReturn

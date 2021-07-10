@@ -1,10 +1,10 @@
 @file:Suppress("BlockingMethodInNonBlockingContext", "NOTHING_TO_INLINE")
-package com.gitlab.mynt
+package com.github.exerosis.mynt
 
-import com.gitlab.mynt.base.Connection
-import com.gitlab.mynt.base.Provider
-import com.gitlab.mynt.base.Read
-import com.gitlab.mynt.base.Write
+import com.github.exerosis.mynt.base.Connection
+import com.github.exerosis.mynt.base.Provider
+import com.github.exerosis.mynt.base.Read
+import com.github.exerosis.mynt.base.Write
 import java.net.SocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousChannelGroup
@@ -30,15 +30,15 @@ open class ChannelHandler(size: Int, error: (Throwable) -> (Unit)) : Connection 
             channel.write(buffer, buffer, handler)
 
     override val read = object : Read {
-        val skip = SkipReadHandler(::doRead, error)
-        val buffer = BufferReadHandler(::doRead, error)
-        val array = ArrayReadHandler(::doRead, error)
-        val byte = NumberReadHandler(::doRead, error) { it.get() }
-        val short = NumberReadHandler(::doRead, error) { it.short }
-        val int = NumberReadHandler(::doRead, error) { it.int }
-        val long = NumberReadHandler(::doRead, error) { it.long }
-        val float = NumberReadHandler(::doRead, error) { it.float }
-        val double = NumberReadHandler(::doRead, error) { it.double }
+        val skip = SkipReadHandler(::doRead)
+        val buffer = BufferReadHandler(::doRead)
+        val array = ArrayReadHandler(::doRead)
+        val byte = NumberReadHandler(::doRead) { it.get() }
+        val short = NumberReadHandler(::doRead) { it.short }
+        val int = NumberReadHandler(::doRead) { it.int }
+        val long = NumberReadHandler(::doRead) { it.long }
+        val float = NumberReadHandler(::doRead) { it.float }
+        val double = NumberReadHandler(::doRead) { it.double }
 
         override suspend fun skip(amount: Int) = continued<Unit> { skip(input, amount, it) }
 
@@ -59,13 +59,13 @@ open class ChannelHandler(size: Int, error: (Throwable) -> (Unit)) : Connection 
         override suspend fun double() = continued<Double> { double(input, 8, it) }
     }
     override val write = object : Write {
-        val buffer = BufferWriteHandler(::doWrite, error)
-        val byte = NumberWriteHandler<Byte>(::doWrite, error) { put(it) }
-        val short = NumberWriteHandler<Short>(::doWrite, error) { putShort(it) }
-        val int = NumberWriteHandler<Int>(::doWrite, error) { putInt(it) }
-        val long = NumberWriteHandler<Long>(::doWrite, error) { putLong(it) }
-        val float = NumberWriteHandler<Float>(::doWrite, error) { putFloat(it) }
-        val double = NumberWriteHandler<Double>(::doWrite, error) { putDouble(it) }
+        val buffer = BufferWriteHandler(::doWrite)
+        val byte = NumberWriteHandler<Byte>(::doWrite) { put(it) }
+        val short = NumberWriteHandler<Short>(::doWrite) { putShort(it) }
+        val int = NumberWriteHandler<Int>(::doWrite) { putInt(it) }
+        val long = NumberWriteHandler<Long>(::doWrite) { putLong(it) }
+        val float = NumberWriteHandler<Float>(::doWrite) { putFloat(it) }
+        val double = NumberWriteHandler<Double>(::doWrite) { putDouble(it) }
         override suspend fun skip(amount: Int) = TODO("Not yet implemented")
 
         override suspend fun buffer(

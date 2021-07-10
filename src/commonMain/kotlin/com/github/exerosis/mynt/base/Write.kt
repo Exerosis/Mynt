@@ -1,4 +1,4 @@
-package com.gitlab.mynt.base
+package com.github.exerosis.mynt.base
 
 expect interface Write {
     suspend fun skip(amount: Int)
