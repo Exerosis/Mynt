@@ -87,7 +87,7 @@ abstract class ChannelHandler(size: Int) : Connection {
 class AcceptChannelHandler(size: Int, val configure: (Channel) -> (Unit)) : ChannelHandler(size),
     CompletionHandler<Channel, Continuation<Connection>> {
     @Volatile override lateinit var channel: Channel
-    override val address = channel.remoteAddress as Address
+    override val address get() = channel.remoteAddress as Address
     override fun completed(channel: Channel, continuation: Continuation<Connection>) {
         configure(channel); this.channel = channel
         continuation.resumeWith(Result.success(this))

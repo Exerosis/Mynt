@@ -6,12 +6,10 @@ import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.channels.ReadPendingException
 import java.nio.channels.WritePendingException
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.abs
 
-typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
+private typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
 abstract class Handler<Type>() : CompletionHandler<Int, ByteBuffer> {
     @Volatile var continuation: Continuation<Type>? = null
     @Volatile var required = 0
@@ -26,10 +24,10 @@ abstract class Handler<Type>() : CompletionHandler<Int, ByteBuffer> {
         current.resumeWith(Result.success(value))
     }
 
-    final override inline fun failed(reason: Throwable, buffer: ByteBuffer) {
+    final override inline fun failed(reason: Throwable?, buffer: ByteBuffer) {
         val current = continuation!!
         continuation = null
-        current.resumeWith(Result.failure(reason))
+        current.resumeWith(Result.failure(ClosedChannelException()))
     }
 }
 
@@ -48,7 +46,7 @@ class SkipReadHandler(val read: Handled) : Handler<Unit>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return failed(ClosedChannelException(), buffer)
+        if (count < 0) return failed(null, buffer)
         required -= count
         if (required < 1) {
             buffer.position(buffer.position() + abs(required))
@@ -86,7 +84,7 @@ class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
 
     //OLD handle current somehow
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return failed(ClosedChannelException(), buffer)
+        if (count < 0) return failed(null, buffer)
         required -= count
         if (required < 1) {
             val remaining = buffer.flip().remaining()
@@ -118,7 +116,7 @@ class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return failed(ClosedChannelException(), buffer)
+        if (count < 0) return failed(null, buffer)
         required -= count
         if (required < 1) complete(buffer)
         else read(buffer, this)
@@ -154,7 +152,7 @@ class NumberReadHandler<Type : Number>(
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return failed(ClosedChannelException(), buffer)
+        if (count < 0) return failed(null, buffer)
         required -= count
         if (required < 1) {
             buffer.limit(buffer.position()).position(mark)
@@ -177,7 +175,7 @@ open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return failed(ClosedChannelException(), buffer)
+        if (count < 0) return failed(null, buffer)
         required -= count
         if (required < 1) {
             buffer.clear()
