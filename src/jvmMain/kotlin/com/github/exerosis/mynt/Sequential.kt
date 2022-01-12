@@ -1,27 +1,24 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "OVERRIDE_BY_INLINE")
 package com.github.exerosis.mynt
 
-import java.io.Closeable
 import java.nio.ByteBuffer
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.CompletionHandler
 import java.nio.channels.ReadPendingException
 import java.nio.channels.WritePendingException
-import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.math.abs
 
 typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
-abstract class Handler<Type> : CompletionHandler<Int, ByteBuffer> {
-    var continuation: Continuation<Type>? = null
-    var required = 0
+abstract class Handler<Type>() : CompletionHandler<Int, ByteBuffer> {
+    @Volatile var continuation: Continuation<Type>? = null
+    @Volatile var required = 0
 
     inline fun canContinue() = this.continuation == null
     inline fun suspend(continuation: Continuation<Type>, block: () -> (Unit)): Any {
-        if (!canContinue()) println("OMG SO BAD")
-        this.continuation = continuation
-        block(); return COROUTINE_SUSPENDED
+        this.continuation = continuation; block(); return SUSPENDED
     }
     inline fun complete(value: Type) {
         val current = continuation!!
@@ -29,13 +26,11 @@ abstract class Handler<Type> : CompletionHandler<Int, ByteBuffer> {
         current.resumeWith(Result.success(value))
     }
 
-    inline fun fail(reason: Throwable) {
+    final override inline fun failed(reason: Throwable, buffer: ByteBuffer) {
         val current = continuation!!
         continuation = null
         current.resumeWith(Result.failure(reason))
     }
-
-    override fun failed(reason: Throwable, buffer: ByteBuffer) = fail(reason)
 }
 
 class SkipReadHandler(val read: Handled) : Handler<Unit>() {
@@ -53,7 +48,7 @@ class SkipReadHandler(val read: Handled) : Handler<Unit>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+        if (count < 0) return failed(ClosedChannelException(), buffer)
         required -= count
         if (required < 1) {
             buffer.position(buffer.position() + abs(required))
@@ -63,8 +58,8 @@ class SkipReadHandler(val read: Handled) : Handler<Unit>() {
     }
 }
 class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
-    var offset = 0
-    var array: ByteArray? = null
+    @Volatile var offset = 0
+    @Volatile var array: ByteArray? = null
 
     operator fun invoke(
             using: ByteBuffer,
@@ -91,7 +86,7 @@ class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
 
     //OLD handle current somehow
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+        if (count < 0) return failed(ClosedChannelException(), buffer)
         required -= count
         if (required < 1) {
             val remaining = buffer.flip().remaining()
@@ -122,17 +117,17 @@ class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
         else suspend(continuation) { read(buffer, this) }
     }
 
-    override fun completed(count: Int, destination: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+    override fun completed(count: Int, buffer: ByteBuffer) {
+        if (count < 0) return failed(ClosedChannelException(), buffer)
         required -= count
-        if (required < 1) complete(destination)
-        else read(destination, this)
+        if (required < 1) complete(buffer)
+        else read(buffer, this)
     }
 }
 class NumberReadHandler<Type : Number>(
     val read: Handled, val converter: (ByteBuffer) -> (Type)
 ) : Handler<Type>() {
-    var mark = 0
+    @Volatile var mark = 0
 
     operator fun invoke(
             using: ByteBuffer,
@@ -159,7 +154,7 @@ class NumberReadHandler<Type : Number>(
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+        if (count < 0) return failed(ClosedChannelException(), buffer)
         required -= count
         if (required < 1) {
             buffer.limit(buffer.position()).position(mark)
@@ -182,7 +177,7 @@ open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
-        if (count < 0) return fail(ClosedChannelException())
+        if (count < 0) return failed(ClosedChannelException(), buffer)
         required -= count
         if (required < 1) {
             buffer.clear()

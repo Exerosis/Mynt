@@ -1,33 +1,24 @@
 @file:Suppress("BlockingMethodInNonBlockingContext", "NOTHING_TO_INLINE")
 package com.github.exerosis.mynt
 
-import com.github.exerosis.mynt.base.Connection
-import com.github.exerosis.mynt.base.Provider
-import com.github.exerosis.mynt.base.Read
-import com.github.exerosis.mynt.base.Write
-import java.net.SocketAddress
+import com.github.exerosis.mynt.base.*
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousChannelGroup
-import java.nio.channels.AsynchronousChannelGroup.*
-import java.nio.channels.AsynchronousServerSocketChannel
-import java.nio.channels.AsynchronousServerSocketChannel.*
-import java.nio.channels.AsynchronousSocketChannel
-import java.nio.channels.CompletionHandler
-import java.util.*
-import java.util.concurrent.ForkJoinPool.*
+import java.nio.channels.*
+import java.nio.channels.AsynchronousServerSocketChannel.open
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.coroutines.resumeWithException
 
-open class ChannelHandler(size: Int) : Connection {
+private typealias Channel = AsynchronousSocketChannel
+
+abstract class ChannelHandler(size: Int) : Connection {
     val input = ByteBuffer.allocateDirect(size)!!.flip() as ByteBuffer
     val output = ByteBuffer.allocateDirect(size)!!.flip() as ByteBuffer
-    open lateinit var channel: AsynchronousSocketChannel
+    abstract val channel: Channel
 
     inline fun doRead(buffer: ByteBuffer, handler: CompletionHandler<Int, ByteBuffer>) =
-            channel.read(buffer, buffer, handler)
+        channel.read(buffer, buffer, handler)
     inline fun doWrite(buffer: ByteBuffer, handler: CompletionHandler<Int, ByteBuffer>) =
-            channel.write(buffer, buffer, handler)
+        channel.write(buffer, buffer, handler)
 
     override val read = object : Read {
         val skip = SkipReadHandler(::doRead)
@@ -72,9 +63,7 @@ open class ChannelHandler(size: Int) : Connection {
                 buffer: ByteBuffer,
         ) = continued<Unit> { this.buffer(output, buffer, it) }
         override suspend fun bytes(
-                bytes: ByteArray,
-                amount: Int,
-                offset: Int
+            bytes: ByteArray, amount: Int, offset: Int
         ) = continued<Unit> {
             val buffer = ByteBuffer.wrap(bytes, offset, amount)
             buffer.position(amount)
@@ -89,54 +78,56 @@ open class ChannelHandler(size: Int) : Connection {
         override suspend fun double(double: Double) = continued<Unit> { double(output, double, it) }
     }
 
+    override val address get() = channel.remoteAddress as Address
+
     override val isOpen get() = channel.isOpen
     override suspend fun close() = channel.close()
 }
 
-class AcceptChannelHandler(
-    size: Int
-) : ChannelHandler(size), CompletionHandler<AsynchronousSocketChannel, Continuation<Connection>> {
-    override fun completed(channel: AsynchronousSocketChannel, continuation: Continuation<Connection>) {
-        this.channel = channel
+class AcceptChannelHandler(size: Int, val configure: (Channel) -> (Unit)) : ChannelHandler(size),
+    CompletionHandler<Channel, Continuation<Connection>> {
+    @Volatile override lateinit var channel: Channel
+    override val address = channel.remoteAddress as Address
+    override fun completed(channel: Channel, continuation: Continuation<Connection>) {
+        configure(channel); this.channel = channel
         continuation.resumeWith(Result.success(this))
     }
     override fun failed(reason: Throwable, continuation: Continuation<Connection>) =
-            continuation.resumeWith(Result.failure(reason))
+        continuation.resumeWith(Result.failure(reason))
 }
 class ConnectChannelHandler(
-    size: Int, override var channel: AsynchronousSocketChannel
+    size: Int, override val channel: Channel
 ) : ChannelHandler(size), CompletionHandler<Void?, Continuation<Connection>> {
+    override val address = channel.remoteAddress as Address
     override fun completed(ignored: Void?, continuation: Continuation<Connection>) =
         continuation.resumeWith(Result.success(this))
     override fun failed(reason: Throwable, continuation: Continuation<Connection>) =
         continuation.resumeWith(Result.failure(reason))
 }
 
-fun SocketProvider(size: Int, group: AsynchronousChannelGroup) = object : Provider<SocketAddress> {
-    private val servers = HashMap<SocketAddress, AsynchronousServerSocketChannel>()
-    private val clients = HashMap<SocketAddress, Connection>()
-    private val serverFactory = { address: SocketAddress -> open(group).bind(address) }
+fun SocketProvider(
+    size: Int, group: AsynchronousChannelGroup,
+    configure: (Channel) -> (Unit) = {}
+) = object : Provider {
+    private val servers = ConcurrentHashMap<Address, AsynchronousServerSocketChannel>()
+    private val serverFactory = { address: Address -> open(group).bind(address) }
 
-    override suspend fun accept(address: SocketAddress) = continued<Connection> {
-        servers.computeIfAbsent(address, serverFactory).accept(it, AcceptChannelHandler(size))
-        COROUTINE_SUSPENDED
+    override suspend fun accept(address: Address) = continued<Connection> {
+        if (group.isShutdown) throw ShutdownChannelGroupException()
+        servers.computeIfAbsent(address, serverFactory).accept(it, AcceptChannelHandler(size, configure))
+        SUSPENDED
     }
-    override suspend fun connect(address: SocketAddress) = continued<Connection> {
-        //OLD some slight issues with open vs connected.
-        val connection = clients[address]
-        if (connection == null) {
-            val channel = AsynchronousSocketChannel.open(group)
-            val handler = ConnectChannelHandler(size, channel)
-            channel.connect(address, it, handler)
-            clients[address] = handler; COROUTINE_SUSPENDED
-        } else connection
+    override suspend fun connect(address: Address) = continued<Connection> {
+        if (group.isShutdown) throw ShutdownChannelGroupException()
+        val channel = Channel.open(group)
+        configure(channel)
+        val handler = ConnectChannelHandler(size, channel)
+        channel.connect(address, it, handler); SUSPENDED
     }
 
-    override val isOpen get() = !group.isTerminated && !group.isShutdown
+    override val isOpen get() = !group.isShutdown
     override suspend fun close() {
         group.shutdownNow()
         servers.clear()
-        clients.clear()
     }
 }
-fun SocketProvider(size: Int) = SocketProvider(size, withThreadPool(commonPool()))

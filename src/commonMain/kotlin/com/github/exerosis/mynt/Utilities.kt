@@ -12,6 +12,7 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 suspend inline fun <Type> continued(
     crossinline block: (Continuation<Type>) -> (Any?)
 ) = suspendCoroutineUninterceptedOrReturn(block)
+inline val SUSPENDED get() = COROUTINE_SUSPENDED
 
 suspend inline fun Read.bytes(amount: Int, offset: Int = 0)
     = bytes(ByteArray(amount), amount, offset)

@@ -1,6 +1,6 @@
 package com.github.exerosis.mynt.base
 
-interface Provider<Address> {
+interface Provider {
     suspend fun accept(address: Address): Connection
 
     suspend fun connect(address: Address): Connection
