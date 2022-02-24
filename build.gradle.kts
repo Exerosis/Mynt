@@ -9,7 +9,7 @@ version = "1.0.10"
 repositories { mavenCentral() }
 
 //dependencies {
-//    implem(npm("turbo-net", "1.4.0"))
+//    implements(npm("turbo-net", "1.4.0"))
 //}
 
 kotlin { jvm() }
