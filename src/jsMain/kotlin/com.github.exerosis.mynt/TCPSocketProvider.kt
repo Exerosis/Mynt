@@ -1,10 +1,10 @@
-package com.gitlab.mynt
+package com.github.exerosis.mynt
 
-import com.gitlab.mynt.base.*
+import com.github.exerosis.mynt.base.*
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
 
-class TCPSocketProvider(private val allocator: () -> dynamic) : Provider<Address> {
+class TCPSocketProvider(private val allocator: () -> dynamic) : Provider {
     private val turbo = js("require('turbo-net')")
     private val servers = mutableMapOf<Address, dynamic>()
     private val clients = mutableMapOf<Address, Connection>()
@@ -84,7 +84,13 @@ class TCPSocketProvider(private val allocator: () -> dynamic) : Provider<Address
             override suspend fun double(double: Double) {
                 TODO("Not yet implemented")
             }
+
+            override suspend fun skip(amount: Int) {
+                TODO("Not yet implemented")
+            }
         }
+        override val address: Address
+            get() = TODO("Not yet implemented")
 
         override val isOpen = open
 
@@ -98,7 +104,7 @@ class TCPSocketProvider(private val allocator: () -> dynamic) : Provider<Address
 
     override suspend fun accept(address: Address) = continued<Connection> {
         val server = servers.getOrPut(address) {
-            turbo.createServer().listen(address.port, address.host) { open++ }
+            turbo.createServer().listen(address.port, address.address) { open++ }
         }
         var listener: dynamic = null
         listener = { channel: dynamic ->
@@ -112,7 +118,7 @@ class TCPSocketProvider(private val allocator: () -> dynamic) : Provider<Address
     override suspend fun connect(address: Address) = continued<Connection> { continuation ->
         val connection = clients[address]
         if (connection == null) {
-            val channel = turbo.connect(address.port, address.host)
+            val channel = turbo.connect(address.port, address.address)
             val handler = Handler(allocator, channel)
             channel.on("connect") { continuation.resume(handler) }
             clients[address] = handler; COROUTINE_SUSPENDED

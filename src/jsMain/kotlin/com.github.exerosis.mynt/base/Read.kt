@@ -1,4 +1,4 @@
-package com.gitlab.mynt.base
+package com.github.exerosis.mynt.base
 
 //TODO Add number overloads?
 actual interface Read {

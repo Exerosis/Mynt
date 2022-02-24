@@ -1,7 +1,5 @@
 package com.github.exerosis.mynt.base
 
-import kotlin.jvm.JvmOverloads
-
 //TODO Add number overloads?
 expect interface Read {
     suspend fun skip(amount: Int)

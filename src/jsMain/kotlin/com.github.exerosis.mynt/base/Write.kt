@@ -1,4 +1,4 @@
-package com.gitlab.mynt.base
+package com.github.exerosis.mynt.base
 
 actual interface Write {
     actual suspend fun bytes(bytes: ByteArray, amount: Int, offset: Int)
@@ -8,4 +8,5 @@ actual interface Write {
     actual suspend fun float(float: Float)
     actual suspend fun long(long: Long)
     actual suspend fun double(double: Double)
+    actual suspend fun skip(amount: Int)
 }

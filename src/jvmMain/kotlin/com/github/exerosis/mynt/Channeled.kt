@@ -98,7 +98,7 @@ class AcceptChannelHandler(size: Int, val configure: (Channel) -> (Unit)) : Chan
 class ConnectChannelHandler(
     size: Int, override val channel: Channel
 ) : ChannelHandler(size), CompletionHandler<Void?, Continuation<Connection>> {
-    override val address = channel.remoteAddress as Address
+    override val address get() = channel.remoteAddress as Address
     override fun completed(ignored: Void?, continuation: Continuation<Connection>) =
         continuation.resumeWith(Result.success(this))
     override fun failed(reason: Throwable, continuation: Continuation<Connection>) =
