@@ -9,6 +9,10 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Mynt.jsTest.iml" filepath="$PROJECT_DIR$/.idea/modules/Mynt.jsTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Mynt.jvmMain.iml" filepath="$PROJECT_DIR$/.idea/modules/Mynt.jvmMain.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Mynt.jvmTest.iml" filepath="$PROJECT_DIR$/.idea/modules/Mynt.jvmTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.commonMain.iml" filepath="$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.commonMain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.commonTest.iml" filepath="$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.commonTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.jvmMain.iml" filepath="$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.jvmMain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.jvmTest.iml" filepath="$PROJECT_DIR$/.idea/modules/com.github.exerosis.mynt.Mynt.jvmTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.commonMain.iml" filepath="$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.commonMain.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.commonTest.iml" filepath="$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.commonTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.jsTest.iml" filepath="$PROJECT_DIR$/.idea/modules/com.gitlab.mynt.Mynt.jsTest.iml" />

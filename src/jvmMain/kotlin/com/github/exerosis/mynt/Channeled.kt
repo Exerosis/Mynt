@@ -31,7 +31,8 @@ abstract class ChannelHandler(size: Int) : Connection {
         val float = NumberReadHandler(::doRead) { it.float }
         val double = NumberReadHandler(::doRead) { it.double }
 
-        override suspend fun skip(amount: Int) = continued<Unit> { skip(input, amount, it) }
+        override suspend fun skip(amount: Int) = if (amount == 0) Unit else
+            continued { skip(input, amount, it) }
 
         override suspend fun buffer(
             buffer: ByteBuffer,
@@ -40,7 +41,8 @@ abstract class ChannelHandler(size: Int) : Connection {
             bytes: ByteArray,
             amount: Int,
             offset: Int
-        ) = continued<ByteArray> { array(input, bytes, amount, offset, it) }
+        ) = if (amount == 0) bytes else
+            continued { array(input, bytes, amount, offset, it) }
 
         override suspend fun byte() = continued<Byte> { byte(input, 1, it) }
         override suspend fun short() = continued<Short> { short(input, 2, it) }
