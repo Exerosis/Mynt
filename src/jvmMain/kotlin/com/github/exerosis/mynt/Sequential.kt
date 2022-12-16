@@ -106,13 +106,21 @@ class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
             buffer: ByteBuffer,
             continuation: Continuation<ByteBuffer>
     ): Any {
-        //OLD we could use required instead, but maybe nulling out is good?
         if (!canContinue()) throw ReadPendingException()
-        if (using.hasRemaining()) buffer.put(using)
-        //OLD this won't hard limit anything...
-        required = buffer.remaining()
-        return if (required < 1) buffer
-        else suspend(continuation) { read(buffer, this) }
+        val remaining = buffer.remaining()
+        val left = using.remaining()
+        if (remaining < left) {
+            val limit = using.limit()
+            using.limit(limit - (left - remaining))
+            buffer.put(using)
+            using.limit(limit)
+            return buffer
+        } else {
+            buffer.put(using)
+            if (remaining == left) return buffer
+            required = remaining - left
+            return suspend(continuation) { read(buffer, this) }
+        }
     }
 
     override fun completed(count: Int, buffer: ByteBuffer) {
