@@ -81,7 +81,7 @@ open class ChannelHandler(size: Int, val channel: Channel) : Connection {
         override suspend fun double(double: Double) = continued { double(output, double, it) }
     }
 
-    override val address = channel.remoteAddress as Address
+    override val address get() = channel.remoteAddress as Address
 
     override val isOpen get() = channel.isOpen
     override suspend fun close() = channel.close()

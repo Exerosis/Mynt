@@ -4,13 +4,9 @@ plugins {
 }
 
 group = "com.github.exerosis.mynt"
-version = "1.0.12"
+version = "1.1.0"
 
 repositories { mavenCentral() }
-
-//dependencies {
-//    implements(npm("turbo-net", "1.4.0"))
-//}
 
 kotlin {
     sourceSets {
