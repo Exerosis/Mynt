@@ -1,5 +1,5 @@
 plugins {
-    id("org.jetbrains.kotlin.multiplatform").version("1.5.0")
+    id("org.jetbrains.kotlin.multiplatform").version("1.8.0")
     id("org.gradle.maven-publish")
 }
 
@@ -12,4 +12,13 @@ repositories { mavenCentral() }
 //    implements(npm("turbo-net", "1.4.0"))
 //}
 
-kotlin { jvm() }
+kotlin {
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.0")
+            }
+        }
+    }
+    jvm()
+}

@@ -7,21 +7,29 @@ import java.nio.channels.CompletionHandler
 import java.nio.channels.ReadPendingException
 import java.nio.channels.WritePendingException
 import kotlin.coroutines.Continuation
+import kotlinx.coroutines.CompletionHandler as Cancelled
 import kotlin.math.abs
 
 private typealias Handled = (ByteBuffer, CompletionHandler<Int, ByteBuffer>) -> (Unit)
-abstract class Handler<Type>() : CompletionHandler<Int, ByteBuffer> {
+abstract class Handler<Type>(
+    private val closable: AutoCloseable
+) : Cancelled, CompletionHandler<Int, ByteBuffer> {
     @Volatile var continuation: Continuation<Type>? = null
     @Volatile var required = 0
 
     inline fun canContinue() = this.continuation == null
     inline fun suspend(continuation: Continuation<Type>, block: () -> (Unit)): Any {
-        this.continuation = continuation; block(); return SUSPENDED
+        this.continuation = continuation.intercept(this)
+        block(); return SUSPENDED
     }
     inline fun complete(value: Type) {
         val current = continuation!!
         continuation = null
         current.resumeWith(Result.success(value))
+    }
+
+    override fun invoke(cause: Throwable?) {
+        if (cause != null) closable.close()
     }
 
     final override inline fun failed(reason: Throwable?, buffer: ByteBuffer) {
@@ -31,7 +39,7 @@ abstract class Handler<Type>() : CompletionHandler<Int, ByteBuffer> {
     }
 }
 
-class SkipReadHandler(val read: Handled) : Handler<Unit>() {
+class SkipReadHandler(val read: Handled, closable: AutoCloseable) : Handler<Unit>(closable) {
     inline operator fun invoke(
         using: ByteBuffer,
         amount: Int,
@@ -55,7 +63,7 @@ class SkipReadHandler(val read: Handled) : Handler<Unit>() {
         else read(buffer.clear() as ByteBuffer, this)
     }
 }
-class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
+class ArrayReadHandler(val read: Handled, closable: AutoCloseable) : Handler<ByteArray>(closable) {
     @Volatile var offset = 0
     @Volatile var array: ByteArray? = null
 
@@ -100,7 +108,7 @@ class ArrayReadHandler(val read: Handled) : Handler<ByteArray>() {
         }
     }
 }
-class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
+class BufferReadHandler(val read: Handled, closable: AutoCloseable) : Handler<ByteBuffer>(closable) {
     operator fun invoke(
             using: ByteBuffer,
             buffer: ByteBuffer,
@@ -131,8 +139,8 @@ class BufferReadHandler(val read: Handled) : Handler<ByteBuffer>() {
     }
 }
 class NumberReadHandler<Type : Number>(
-    val read: Handled, val converter: (ByteBuffer) -> (Type)
-) : Handler<Type>() {
+    val read: Handled, closable: AutoCloseable, val converter: (ByteBuffer) -> (Type)
+) : Handler<Type>(closable) {
     @Volatile var mark = 0
 
     operator fun invoke(
@@ -170,7 +178,7 @@ class NumberReadHandler<Type : Number>(
     }
 }
 
-open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
+open class BufferWriteHandler(val write: Handled, closable: AutoCloseable) : Handler<Unit>(closable) {
     operator fun invoke(
         using: ByteBuffer,
         buffer: ByteBuffer,
@@ -192,8 +200,8 @@ open class BufferWriteHandler(val write: Handled) : Handler<Unit>() {
     }
 }
 class NumberWriteHandler<Type : Number>(
-    write: Handled, val converter: ByteBuffer.(Type) -> (ByteBuffer)
-) : BufferWriteHandler(write) {
+    write: Handled, closable: AutoCloseable, val converter: ByteBuffer.(Type) -> (ByteBuffer)
+) : BufferWriteHandler(write, closable) {
     operator fun invoke(
         using: ByteBuffer,
         value: Type,
